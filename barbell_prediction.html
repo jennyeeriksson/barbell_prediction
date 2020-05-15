@@ -11,7 +11,7 @@
 
 <meta name="author" content="Jenny Eriksson" />
 
-<meta name="date" content="2020-05-14" />
+<meta name="date" content="2020-05-15" />
 
 <title>Predicting quality of Barbell lifts from movement patterns</title>
 
@@ -365,7 +365,7 @@ summary {
 
 <h1 class="title toc-ignore">Predicting quality of Barbell lifts from movement patterns</h1>
 <h4 class="author">Jenny Eriksson</h4>
-<h4 class="date">2020-05-14</h4>
+<h4 class="date">2020-05-15</h4>
 
 </div>
 
@@ -416,11 +416,12 @@ r_gbm&lt;-apply(prob_gbm, 1, function(x) factor(levels((testing$classe)))[which.
 ## 4   svm 0.07851134
 ## 5   gbm 0.18710171</code></pre>
 </div>
-<div id="results" class="section level2">
-<h2>Results</h2>
+<div id="results-and-discussion" class="section level2">
+<h2>Results and discussion</h2>
 <p>The best model when looking at error rates is SVM, so I will use that model. The expected error rate is gained by applying the model to the validation set, which has been untouched until now.</p>
 <pre class="r"><code>exp_error&lt;-1-confusionMatrix(predict(m_svm, validation), validation$classe)$overall[1]</code></pre>
 <p>The expected out of sample error rate is <code>0.0764721</code></p>
+<p>The different models that were investigated had quite a big difference in performace. For example, the regression tree had an error rate of 50% while the svm only had 7%. One explanation might be that svm is typically more robust to outliers. There were still some outliers in a few of the features, maybe the other models would have behaved better if the outliers were first removed. This theory can be strengthened by the fact that gbm performed much better than rpart, since the boosted tree is less prone to overfitting than the regular regression tree.</p>
 </div>
 
 

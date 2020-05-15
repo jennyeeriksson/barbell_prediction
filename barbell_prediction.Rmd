@@ -1,7 +1,7 @@
 ---
 title: "Predicting quality of Barbell lifts from movement patterns"
 author: "Jenny Eriksson"
-date: '2020-05-14'
+date: '2020-05-15'
 output: html_document
 ---
 
@@ -85,9 +85,11 @@ data.frame(model=c("knn", "rpart", "lda", "svm", "gbm"), error_rate=error_rates)
 
 
 
-## Results 
+## Results and discussion
 The best model when looking at error rates is SVM, so I will use that model. The expected error rate is gained by applying the model to the validation set, which has been untouched until now.
 ```{r}
 exp_error<-1-confusionMatrix(predict(m_svm, validation), validation$classe)$overall[1]
 ```
 The expected out of sample error rate is ```r  exp_error[[1]]```
+
+The different models that were investigated had quite a big difference in performace. For example, the regression tree had an error rate of 50% while the svm only had 7%. One explanation might be that svm is typically more robust to outliers. There were still some outliers in a few of the features, maybe the other models would have behaved better if the outliers were first removed. This theory can be strengthened by the fact that gbm performed much better than rpart, since the boosted tree is less prone to overfitting than the regular regression tree.
