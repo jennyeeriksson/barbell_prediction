@@ -1,0 +1,93 @@
+---
+title: "Predicting quality of Barbell lifts from movement patterns"
+author: "Jenny Eriksson"
+date: '2020-05-14'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+The mission of the study has been to build a classifier that can, based on recorded movements from barbell lifts, predict how well the lift was performed. It shows that it's possible to predict the quality with an error rate of 8 %.
+
+```{r, include=FALSE}
+library(caret)
+library(gbm)
+library(e1071)
+if(!file.exists("training.csv"))
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "training.csv")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "testing.csv")
+set.seed(12345)
+```
+
+## Exploratory
+By looking at the test set we see that the distribution between the different classes is fairly even. We will therefore shuffle and split the data in three parts (training, testing, validation), without any further processing. Since there are quite a lot of entries in the training file I will not use any further cross-validation than this split in three.
+```{r}
+data<-read.csv("training.csv")
+plot(data$classe)
+```
+
+```{r}
+data<-data[sample(nrow(data)),]
+trainIdx<-createDataPartition(data$classe, p=0.6, list=F)
+training<-data[trainIdx,]
+testval<-data[-trainIdx,]
+testIdx<-createDataPartition(testval$classe, p=0.5, list=F)
+testing<-testval[testIdx,]
+validation<-testval[-testIdx,]
+```
+
+## Selecting feature
+The features that will be used are the ones that are present in the official test set and does not carry extreme outliers, hence all features starting with "gyro" or "avg" are removed.
+
+```{r}
+featIdx<-grep("^(roll|pitch|yaw|accel|magnet|classe)",names(training))
+
+training<-training[,featIdx]
+testing<-testing[,featIdx]
+validation<-validation[,featIdx]
+```
+
+## Model training and selection
+We will investigate 5 different models: K-nearest neighbor (knn), regression tree (rpart), model based (lda), support vector machines (svm), gaussian boosted trees (gbm).
+```{r models, cache=T}
+m_knn<-train(classe~., data=training, method="knn")
+m_rpart<-train(classe~., data=training, method="rpart")
+m_lda=train(classe ~ ., data=training, method="lda")
+m_svm<-svm(classe~., data=training)
+m_gbm=gbm(classe ~ ., data=training, distribution="multinomial", verbose=FALSE)
+```
+
+```{r predictions, cache=T}
+r_knn<-predict(m_knn, testing)
+r_rpart<-predict(m_rpart, testing)
+r_lda<-predict(m_lda, testing)
+r_svm<-predict(m_svm, testing)
+prob_gbm<-predict(m_gbm, testing, type="response", n.trees=100)
+r_gbm<-apply(prob_gbm, 1, function(x) factor(levels((testing$classe)))[which.max(x)])
+
+```
+The error rates are displayed in the table below, computed as 1-accuracy for each model.
+```{r, echo=F}
+error_rates=rep(0,5)
+error_rates[1]<-
+1-confusionMatrix(r_knn, testing$classe)$overall[1]
+error_rates[2]<-
+1-confusionMatrix(r_rpart, testing$classe)$overall[1]
+error_rates[3]<-
+1-confusionMatrix(r_lda, testing$classe)$overall[1]
+error_rates[4]<-
+1-confusionMatrix(r_svm, testing$classe)$overall[1]
+error_rates[5]<-
+1-confusionMatrix(r_gbm, testing$classe)$overall[1]
+data.frame(model=c("knn", "rpart", "lda", "svm", "gbm"), error_rate=error_rates)
+```
+
+
+
+## Results 
+The best model when looking at error rates is SVM, so I will use that model. The expected error rate is gained by applying the model to the validation set, which has been untouched until now.
+```{r}
+exp_error<-1-confusionMatrix(predict(m_svm, validation), validation$classe)$overall[1]
+```
+The expected out of sample error rate is ```r  exp_error[[1]]```
